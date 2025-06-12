@@ -11,7 +11,9 @@ import re
 import argparse
 import json
 
-from reliq import reliq
+from reliq import RQ
+
+reliq = RQ(cached=True)
 
 # from curl_cffi import requests
 import requests
@@ -85,16 +87,6 @@ class Session(requests.Session):
 
         self.logger = kwargs.get("logger")
 
-    @staticmethod
-    def base(rq, url):
-        ref = url
-        u = rq.search(r'[0] head; [0] base href=>[1:] | "%(href)v"')
-        if u != "":
-            u = urljoin(url, u)
-            if u != "":
-                ref = u
-        return ref
-
     def get_req_try(self, url, retry=False):
         if not retry:
             if self.wait != 0:
@@ -155,7 +147,7 @@ class Session(requests.Session):
         resp = self.get_req(url)
 
         rq = reliq(resp.text)
-        ref = self.base(rq, url)
+        ref = rq.ref
 
         if return_cookies:
             return (rq, ref, resp.cookies.get_dict())
@@ -224,7 +216,7 @@ class Ngag:
         rq, ref = self.ses.get_html(url)
 
         r = json.loads(
-            rq.search(
+            rq.json(
                 r'[0] script type="text/javascript" i@b>window. | "%i" / sed "s/[^(]*parse\(\"//; s/\");$//; s/\\\\(.)/\1/g" "E"'
             )
         )
