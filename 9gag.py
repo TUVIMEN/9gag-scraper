@@ -8,16 +8,15 @@ import hashlib
 import os
 import sys
 import re
-import argparse
 import json
 
 from reliq import RQ
 
-reliq = RQ(cached=True)
-
 # from curl_cffi import requests
 import requests
-from urllib.parse import urljoin
+import treerequests
+
+reliq = RQ(cached=True)
 
 
 class RequestError(Exception):
@@ -35,132 +34,12 @@ def strtosha256(string):
     return hashlib.sha256(string).hexdigest()
 
 
-def int_get(obj, name):
-    x = obj.get(name)
-    if x is None:
-        return 0
-    return int(x)
-
-
-def float_get(obj, name):
-    x = obj.get(name)
-    if x is None:
-        return 0
-    return float(x)
-
-
-class Session(requests.Session):
-    def __init__(self, **kwargs):
-        # super().__init__(impersonate="firefox", timeout=30)
-        super().__init__()
-
-        t = kwargs.get("timeout")
-        self.timeout = 30 if t is None else t
-
-        t = kwargs.get("user_agent")
-        self.user_agent = (
-            t
-            if t is not None
-            else "Mozilla/5.0 (X11; Linux x86_64; rv:135.0) Gecko/20100101 Firefox/135.0"
-        )
-
-        self.headers.update(
-            {"User-Agent": self.user_agent, "Referer": "https://9gag.com/"}
-        )
-
-        self.cookies.update(
-            {
-                "____ri": "7378",
-                "____lo": "PL",
-                "sign_up_referer": "",
-            }
-        )
-
-        self.retries = int_get(kwargs, "retries")
-        self.retry_wait = float_get(kwargs, "retry_wait")
-        self.wait = float_get(kwargs, "wait")
-        self.wait_random = int_get(kwargs, "wait_random")
-        self.visited_c = kwargs.get("visited")
-        if self.visited_c is None:
-            self.visited_c = False
-        self.visited = set()
-
-        self.logger = kwargs.get("logger")
-
-    def get_req_try(self, url, retry=False):
-        if not retry:
-            if self.wait != 0:
-                time.sleep(self.wait)
-            if self.wait_random != 0:
-                time.sleep(random.randint(0, self.wait_random + 1) / 1000)
-
-        if self.logger is not None:
-            print(url, file=self.logger)
-
-        return self.get(url, timeout=self.timeout)
-
-    def get_req(self, url):
-        if self.visited_c:
-            if url in self.visited:
-                raise AlreadyVisitedError(url)
-
-            self.visited.add(url)
-
-        tries = self.retries
-        retry_wait = self.retry_wait
-
-        instant_end_code = [400, 401, 402, 403, 404, 410, 412, 414, 421, 505]
-
-        i = 0
-        while True:
-            try:
-                resp = self.get_req_try(url, retry=(i != 0))
-            except (
-                requests.ConnectTimeout,
-                requests.ConnectionError,
-                requests.ReadTimeout,
-                requests.exceptions.ChunkedEncodingError,
-                RequestError,
-            ):
-                resp = None
-
-            if resp is None or not (
-                resp.status_code >= 200 and resp.status_code <= 299
-            ):
-                if resp is not None and resp.status_code in instant_end_code:
-                    raise RequestError(
-                        "failed completely {} {}".format(resp.status_code, url)
-                    )
-                if i >= tries:
-                    raise RequestError(
-                        "failed {} {}".format(
-                            "connection" if resp is None else resp.status_code, url
-                        )
-                    )
-                i += 1
-                if retry_wait != 0:
-                    time.sleep(retry_wait)
-            else:
-                return resp
-
-    def get_html(self, url, return_cookies=False):
-        resp = self.get_req(url)
-
-        rq = reliq(resp.text)
-        ref = rq.ref
-
-        if return_cookies:
-            return (rq, ref, resp.cookies.get_dict())
-        return (rq, ref)
-
-    def get_json(self, url):
-        resp = self.get_req(url)
-        return resp.json()
-
-
 class Ngag:
     def __init__(self, **kwargs):
-        self.ses = Session(
+        self.ses = treerequests.Session(
+            requests,
+            requests.Session,
+            lambda x, y: treerequests.reliq(x, y, obj=reliq),
             **kwargs,
         )
 
@@ -213,10 +92,10 @@ class Ngag:
     def get_post(self, url):
         if os.path.exists(self.get_post_postid(url)):
             return
-        rq, ref = self.ses.get_html(url)
+        rq = self.ses.get_html(url)
 
         r = json.loads(
-            rq.json(
+            rq.search(
                 r'[0] script type="text/javascript" i@b>window. | "%i" / sed "s/[^(]*parse\(\"//; s/\");$//; s/\\\\(.)/\1/g" "E"'
             )
         )
@@ -264,5 +143,5 @@ class Ngag:
         self.get_home_page("https://9gag.com/v1/feed-posts/type/home", maxi)
 
 
-gag = Ngag(logger=sys.stderr)
+gag = Ngag(logger=treerequests.simple_logger(sys.stderr))
 gag.get_home()
