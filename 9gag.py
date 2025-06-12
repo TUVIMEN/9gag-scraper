@@ -143,7 +143,7 @@ class Ngag:
 
 def argparser():
     parser = argparse.ArgumentParser(
-        description="Tool for scraping blu-ray.com. If no URLs provided scrapes the whole site",
+        description="A simple scraper for 9gag",
         add_help=False,
     )
 
