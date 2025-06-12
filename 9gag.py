@@ -2,13 +2,12 @@
 # by Dominik Stanisław Suchora <suchora.dominik7@gmail.com>
 # License: GNU GPLv3
 
-import time
-import random
 import hashlib
 import os
 import sys
 import re
 import json
+import argparse
 
 from reliq import RQ
 
@@ -19,19 +18,18 @@ import treerequests
 reliq = RQ(cached=True)
 
 
-class RequestError(Exception):
-    pass
-
-
-class AlreadyVisitedError(Exception):
-    pass
-
-
 def strtosha256(string):
     if isinstance(string, str):
         string = string.encode()
 
     return hashlib.sha256(string).hexdigest()
+
+
+def valid_directory(directory: str):
+    if os.path.isdir(directory):
+        return directory
+    else:
+        raise argparse.ArgumentTypeError('"{}" is not a directory'.format(directory))
 
 
 class Ngag:
@@ -105,7 +103,7 @@ class Ngag:
         r["comments"] = self.get_comment_list(postid, appid)
 
         with open(postid, "w") as f:
-            f.write(json.dumps(r))
+            f.write(json.dumps(r, separators=(",", ":")))
 
     def get_home_page(self, url, maxi=0):
         nexturl = url
@@ -143,5 +141,41 @@ class Ngag:
         self.get_home_page("https://9gag.com/v1/feed-posts/type/home", maxi)
 
 
-gag = Ngag(logger=treerequests.simple_logger(sys.stderr))
-gag.get_home()
+def argparser():
+    parser = argparse.ArgumentParser(
+        description="Tool for scraping blu-ray.com. If no URLs provided scrapes the whole site",
+        add_help=False,
+    )
+
+    parser.add_argument(
+        "-h",
+        "--help",
+        action="help",
+        help="Show this help message and exit",
+    )
+    parser.add_argument(
+        "-d",
+        "--directory",
+        metavar="DIR",
+        type=valid_directory,
+        help="Use DIR as working directory",
+        default=".",
+    )
+
+    treerequests.args_section(parser)
+
+    return parser
+
+
+def cli(argv: list[str]):
+    args = argparser().parse_args(argv)
+
+    os.chdir(args.directory)
+
+    gag = Ngag(logger=treerequests.simple_logger(sys.stdout))
+    treerequests.args_session(gag.ses, args)
+
+    gag.get_home()
+
+
+cli(sys.argv[1:])
