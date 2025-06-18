@@ -205,8 +205,8 @@ class Ngag:
             return self.save_pages_posts(
                 "https://9gag.com/v1/feed-posts/type/home", *args, **kwargs
             )
-        elif re.fullmatch(r"/9gag/[0-9A-Za-z]+", path):
-            return self.get_post(url, *args, **kwargs)
+        elif re.fullmatch(r"/gag/[0-9A-Za-z]+", path):
+            return self.save_post(url, *args, **kwargs)
         elif re.fullmatch(r"/(forum|fresh|hot|home)", path):
             return self.save_pages_posts(
                 "https://9gag.com/v1/feed-posts/type" + path, *args, **kwargs
