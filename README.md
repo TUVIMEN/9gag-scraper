@@ -24,6 +24,14 @@ At the same time, posts on the pages are scraped, all comments and replies to th
 
 All files created are in raw json format provided by 9gag, any changes are minimal and only to incorporate data retrieved in later calls so only singular files are returned.
 
+Get specific posts
+
+    ./9gag.py 'https://9gag.com/gag/a9yOy7j' 'https://9gag.com/gag/abAQA5L'
+
+Get posts from specific feeds
+
+    ./9gag.py 'https://9gag.com/interest/news' 'https://9gag.com/tag/crypto/hot'
+
 Running with `--help` option will print available options.
 
     ./9gag.py --help
@@ -32,8 +40,12 @@ Running with `--help` option will print available options.
 usage: 9gag.py [-h] [-d DIR] [-w TIME] [-W MILISECONDS] [-r NUM]
                [--retry-wait TIME] [--force-retry] [-m TIME] [-k] [-L] [-A UA]
                [-x DICT] [-H HEADER] [-b COOKIE] [-B BROWSER]
+               [URL ...]
 
-A simple scraper for 9gag
+A simple scraper for 9gag, if no url are specified downloads from home feed
+
+positional arguments:
+  URL                   urls
 
 options:
   -h, --help            Show this help message and exit
@@ -64,6 +76,6 @@ Request settings:
 
 # cronjobs
 
-Since there's no way of getting old posts, the only way to get things is to periodically scrape. The following rule will run the scraper every 2 days
+Since there's no way of getting old posts, the only way to get things is to periodically scrape. The following rule will run the scraper every 8 hours
 
-    * * */2 * * 9gag.py -d /var/9gag
+    0 */8 * * * 9gag.py -d /var/9gag
