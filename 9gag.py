@@ -10,6 +10,7 @@ import json
 import argparse
 from pathlib import Path
 from urllib.parse import urlparse
+from functools import partial
 
 from reliq import RQ
 
@@ -136,8 +137,11 @@ class Ngag:
 
             page += 1
 
-    def get_page(self, url):
-        r = self.ses.get_json(url)
+    def get_page(self, url, post=False):
+        if post:
+            r = self.ses.post_json(url)
+        else:
+            r = self.ses.get_json(url)
 
         data = r["data"]
 
@@ -152,8 +156,8 @@ class Ngag:
 
         return r, nexturl
 
-    def get_pages(self, url, maxi=0):
-        return self.go_though_pages(self.get_page, url, maxi=maxi)
+    def get_pages(self, url, maxi=0, post=False):
+        return self.go_though_pages(partial(self.get_page, post=post), url, maxi=maxi)
 
     def get_post_urls(self, page):
         ret = []
@@ -163,18 +167,18 @@ class Ngag:
             ret.append(url)
         return ret
 
-    def save_pages(self, url, maxi=0, path="", prefix=""):
+    def save_pages(self, url, maxi=0, path="", prefix="", post=False):
         page = 0
         prefix = str(Path(path) / prefix) if len(path) > 0 else prefix
-        for i in self.get_pages(url, maxi=maxi):
+        for i in self.get_pages(url, maxi=maxi, post=post):
             with open(prefix + str(page).zfill(4), "w") as f:
                 jsondump(i, f)
 
             yield i
             page += 1
 
-    def save_pages_posts(self, url, maxi=0, path="", prefix=""):
-        for i in self.save_pages(url, maxi=maxi, path=path, prefix=prefix):
+    def save_pages_posts(self, url, maxi=0, path="", prefix="", post=False):
+        for i in self.save_pages(url, maxi=maxi, path=path, prefix=prefix, post=post):
             for j in self.get_post_urls(i):
                 self.save_post(j, path=path)
 
@@ -207,6 +211,15 @@ class Ngag:
             )
         elif re.fullmatch(r"/gag/[0-9A-Za-z]+", path):
             return self.save_post(url, *args, **kwargs)
+        elif arg := re.fullmatch(r"/u/([^/]+)(/(likes|posts|comments))?", path):
+            user = arg[1]
+            path = arg[2] if arg[2] is not None else "/likes"
+            return self.save_pages_posts(
+                "https://9gag.com/v1/user-posts/username/" + user + "/type" + path,
+                post=True,
+                *args,
+                **kwargs,
+            )
         elif re.fullmatch(r"/(forum|fresh|hot|home)", path):
             return self.save_pages_posts(
                 "https://9gag.com/v1/feed-posts/type" + path, *args, **kwargs
