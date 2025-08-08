@@ -220,6 +220,12 @@ class Ngag:
                 *args,
                 **kwargs,
             )
+        elif re.fullmatch(r"/search", path) and re.search("^query=[^&]+", r.query):
+            return self.save_pages_posts(
+                "https://9gag.com/v1/search-posts?" + r.query.split("&")[0],
+                *args,
+                **kwargs,
+            )
         elif re.fullmatch(r"/(forum|fresh|hot|home)", path):
             return self.save_pages_posts(
                 "https://9gag.com/v1/feed-posts/type" + path, *args, **kwargs
