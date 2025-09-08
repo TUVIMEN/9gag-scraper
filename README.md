@@ -37,9 +37,9 @@ Running with `--help` option will print available options.
     ./9gag.py --help
 
 ```
-usage: 9gag.py [-h] [-d DIR] [-w TIME] [-W MILISECONDS] [-r NUM]
-               [--retry-wait TIME] [--force-retry] [-m TIME] [-k] [-L] [-A UA]
-               [-x DICT] [-H HEADER] [-b COOKIE] [-B BROWSER]
+usage: 9gag.py [-h] [-d DIR] [-w TIME] [-W TIME] [-r NUM] [--retry-wait TIME]
+               [--force-retry] [-m TIME] [-k] [-L] [-A UA] [-x DICT]
+               [-H HEADER] [-b COOKIE] [-B BROWSER]
                [URL ...]
 
 A simple scraper for 9gag, if no url are specified downloads from home feed
@@ -53,9 +53,9 @@ options:
 
 Request settings:
   -w, --wait TIME       Sets waiting time for each request
-  -W, --wait-random MILISECONDS
-                        Sets random waiting time for each request to be at max
-                        MILISECONDS
+  -W, --wait-random TIME
+                        Sets random waiting time for each request to be from
+                        0 to TIME
   -r, --retries NUM     Sets number of retries for failed request to NUM
   --retry-wait TIME     Sets interval between each retry
   --force-retry         Retry no matter the error
@@ -66,10 +66,10 @@ Request settings:
   -A, --user-agent UA   Sets custom user agent
   -x, --proxies DICT    Set requests proxies dictionary, e.g. -x
                         '{"http":"127.0.0.1:8080","ftp":"0.0.0.0"}'
-  -H, --header HEADER   Set curl style header, can be used multiple times e.g.
-                        -H 'User: Admin' -H 'Pass: 12345'
-  -b, --cookie COOKIE   Set curl style cookie, can be used multiple times e.g.
-                        -b 'auth=8f82ab' -b 'PHPSESSID=qw3r8an829'
+  -H, --header HEADER   Set curl style header, can be used multiple times
+                        e.g. -H 'User: Admin' -H 'Pass: 12345'
+  -b, --cookie COOKIE   Set curl style cookie, can be used multiple times
+                        e.g. -b 'auth=8f82ab' -b 'PHPSESSID=qw3r8an829'
   -B, --browser BROWSER
                         Get cookies from specified browser e.g. -B firefox
 ```
